@@ -1,0 +1,490 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Permission {
+  id          Int            @id @default(autoincrement())
+  key         String         @unique
+  name        String
+  description String?
+  type        PermissionType
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  roles RolePermission[]
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  permissions RolePermission[]
+}
+
+model RolePermission {
+  id           Int      @default(autoincrement())
+  roleId       Int
+  permissionId Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model User {
+  id                           Int        @id @default(autoincrement())
+  email                        String     @unique
+  password                     String?
+  fcmToken                     String?
+  verificationCode             String?
+  verificationCodeExpiration   DateTime?
+  otpRequestCooldownExpiration DateTime?
+  name                         String?
+  firstName                    String?
+  lastName                     String?
+  phone                        String?
+  status                       UserStatus @default(ACTIVE)
+  type                         UserType   @default(RESIDENT)
+  floor                        Int?       @default(0)
+  number                       String?
+  imageUrl                     String?
+  roleId                       Int
+  addressId                    Int?
+  companyId                    Int?
+  apartmentId                  Int?
+  createdAt                    DateTime   @default(now())
+  updatedAt                    DateTime   @updatedAt
+
+  sites                UserSite[]
+  accessControls       AccessControl[]
+  deviceConfigurations UserDeviceConfiguration[]
+  residents            User[]                    @relation("Company")
+  tenants              User[]                    @relation("Apartment")
+  role                 Role                      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  address              Address?                  @relation(fields: [addressId], references: [id], onDelete: Cascade)
+  company              User?                     @relation("Company", fields: [companyId], references: [id], onDelete: Cascade)
+  apartment            User?                     @relation("Apartment", fields: [apartmentId], references: [id], onDelete: Cascade)
+}
+
+model AccessKey {
+  id                   Int             @id @default(autoincrement())
+  tag                  String          @unique
+  name                 String
+  number               String?
+  pin                  String?
+  type                 AccessKeyType   @default(TAG)
+  status               AccessKeyStatus @default(ACTIVE)
+  consumption          Int             @default(0)
+  validFrom            DateTime?
+  validTo              DateTime?
+  failedAccessAttempts Int             @default(0)
+  accessFailedAt       DateTime?
+  description          String?
+  siteId               Int
+  accessControlId      Int?            @unique
+  accessKeyProviderId  Int
+  accessTimeScheduleId Int?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  accessControl      AccessControl?      @relation(fields: [accessControlId], references: [id], onDelete: Cascade)
+  accessKeyProvider  AccessKeyProvider   @relation(fields: [accessKeyProviderId], references: [id], onDelete: Cascade)
+  accessTimeSchedule AccessTimeSchedule? @relation(fields: [accessTimeScheduleId], references: [id], onDelete: Cascade)
+}
+
+model AccessKeyProvider {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accessKeys AccessKey[]
+}
+
+model Device {
+  id              Int          @id @default(autoincrement())
+  serialNumber    String       @unique
+  name            String
+  description     String?
+  floor           Int          @default(0)
+  type            DeviceType   @default(VISITOR_PANEL)
+  status          DeviceStatus @default(REGISTRATION_IN_REVIEW)
+  imageUrl        String?
+  twilioRoomName  String?
+  siteId          Int
+  versionId       Int
+  configurationId Int
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  diagnostics    Diagnostics[]
+  accessControls AccessControl[]
+  configurations UserDeviceConfiguration[]
+  site           Site                      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  version        Version                   @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  configuration  Configuration             @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+}
+
+model AccessGroup {
+  id                   Int               @id @default(autoincrement())
+  name                 String
+  color                String            @default("#FF671D")
+  status               AccessGroupStatus @default(ACTIVE)
+  siteId               Int
+  accessTimeScheduleId Int?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  accessControls     AccessControl[]
+  accessExceptions   AccessGroupAccessException[]
+  accessTimeSchedule AccessTimeSchedule?          @relation(fields: [accessTimeScheduleId], references: [id], onDelete: Cascade)
+}
+
+model AccessTimeSchedule {
+  id                  Int      @id @default(autoincrement())
+  applyEveryDay       Boolean  @default(false)
+  applyWholeMonday    Boolean  @default(false)
+  applyWholeTuesday   Boolean  @default(false)
+  applyWholeWednesday Boolean  @default(false)
+  applyWholeThursday  Boolean  @default(false)
+  applyWholeFriday    Boolean  @default(false)
+  applyWholeSaturday  Boolean  @default(false)
+  applyWholeSunday    Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  accessKeys   AccessKey[]
+  accessGroups AccessGroup[]
+  accessTimes  TimeScheduleAccessTime[]
+}
+
+model AccessTime {
+  id             Int      @id @default(autoincrement())
+  accessStartsAt String
+  accessEndsAt   String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  timeSchedules TimeScheduleAccessTime[]
+}
+
+model TimeScheduleAccessTime {
+  id             Int      @default(autoincrement())
+  accessTimeId   Int
+  timeScheduleId Int
+  day            Day
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  accessTime   AccessTime         @relation(fields: [accessTimeId], references: [id], onDelete: Cascade)
+  timeSchedule AccessTimeSchedule @relation(fields: [timeScheduleId], references: [id], onDelete: Cascade)
+
+  @@id([timeScheduleId, accessTimeId])
+}
+
+model AccessException {
+  id               Int                   @id @default(autoincrement())
+  name             String
+  lockStatus       LockStatus            @default(OPEN)
+  startDate        DateTime
+  endDate          DateTime?
+  startTime        String?
+  endTime          String?
+  applySingleDate  Boolean               @default(false)
+  applyWholeDay    Boolean               @default(false)
+  applyForNextYear Boolean               @default(false)
+  status           AccessExceptionStatus @default(ACTIVE)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  accessGroups AccessGroupAccessException[]
+}
+
+model AccessGroupAccessException {
+  id                Int      @default(autoincrement())
+  accessGroupId     Int
+  accessExceptionId Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  accessGroup     AccessGroup     @relation(fields: [accessGroupId], references: [id], onDelete: Cascade)
+  accessException AccessException @relation(fields: [accessExceptionId], references: [id], onDelete: Cascade)
+
+  @@id([accessGroupId, accessExceptionId])
+}
+
+model AccessControl {
+  id                   Int                 @id @default(autoincrement())
+  failedAccessAttempts Int                 @default(0)
+  accessFailedAt       DateTime?
+  isVisible            Boolean             @default(true)
+  status               AccessControlStatus @default(ACTIVE)
+  userId               Int?
+  deviceId             Int?
+  accessGroupId        Int?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  accessKey   AccessKey?
+  user        User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device      Device?      @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  accessGroup AccessGroup? @relation(fields: [accessGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceId, accessGroupId])
+}
+
+model Configuration {
+  id                Int        @id @default(autoincrement())
+  lockStatus        LockStatus @default(OPEN)
+  screenSize        ScreenSize @default(INCH_10)
+  heartbeatInterval Int        @default(300)
+  mainScreenDelay   Int        @default(30)
+  waitBranchLevel   Int        @default(20)
+  activeBranchLevel Int        @default(100)
+  volumeLevel       Int        @default(100)
+  horizontal        Boolean    @default(false)
+  rotation          Float      @default(90)
+  cameraRotation    Float      @default(0)
+  scaling           Int        @default(100)
+  closeDoorTime     Int        @default(10)
+  callTimeout       Int        @default(30)
+  height            Float?
+  width             Float?
+  aspectRatioX      Float?
+  aspectRatioY      Float?
+  adbPort           Int        @default(5555)
+  isDarkTheme       Boolean    @default(false)
+  darkThemeStart    DateTime?
+  darkThemeEnd      DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  devices                  Device[]
+  userDeviceConfigurations UserDeviceConfiguration[]
+}
+
+model AccessControlChangeLog {
+  id                   Int                 @id @default(autoincrement())
+  failedAccessAttempts Int                 @default(0)
+  accessFailedAt       DateTime?
+  isVisible            Boolean             @default(true)
+  status               AccessControlStatus @default(ACTIVE)
+  userId               Int?
+  deviceId             Int?
+  accessGroupId        Int?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime
+}
+
+model UserDeviceConfiguration {
+  id                    Int      @default(autoincrement())
+  userId                Int
+  deviceId              Int
+  deviceConfigurationId Int
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device              Device        @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  deviceConfiguration Configuration @relation(fields: [deviceConfigurationId], references: [id], onDelete: Cascade)
+
+  @@id([userId, deviceId, deviceConfigurationId])
+}
+
+model Site {
+  id          Int        @id @default(autoincrement())
+  name        String?
+  description String?
+  floor       Int?       @default(0)
+  status      SiteStatus @default(ACTIVE)
+  imageUrl    String?
+  addressId   Int
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  devices     Device[]
+  users       UserSite[]
+  diagnostics Diagnostics[]
+  address     Address       @relation(fields: [addressId], references: [id], onDelete: Cascade)
+}
+
+model UserSite {
+  id        Int      @default(autoincrement())
+  userId    Int
+  siteId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@id([userId, siteId])
+}
+
+model Version {
+  id          Int      @id @default(autoincrement())
+  tag         String
+  fileUrl     String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  devices Device[]
+}
+
+model Address {
+  id         Int      @id @default(autoincrement())
+  street     String
+  number     String
+  city       String
+  postalCode String
+  countryId  Int?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  users   User[]
+  sites   Site[]
+  country Country? @relation(fields: [countryId], references: [id], onDelete: Cascade)
+}
+
+model Country {
+  id           Int      @id @default(autoincrement())
+  name         String
+  isoAlphaCode String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  addresses Address[]
+}
+
+model Diagnostics {
+  id            Int               @id @default(autoincrement())
+  description   String?
+  rebootDate    DateTime?
+  rebootTime    DateTime?
+  status        DiagnosticsStatus @default(CREATED)
+  logFileGcsKey String?
+  deviceId      Int?
+  siteId        Int?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  site   Site?   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  device Device? @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  BLOCKED
+}
+
+enum UserType {
+  RESIDENT
+  APARTMENT
+  COMPANY
+}
+
+enum AccessControlStatus {
+  PENDING
+  ACTIVE
+  BLOCKED
+}
+
+enum DeviceStatus {
+  REGISTRATION_IN_REVIEW
+  REBOOTING
+  UPDATING
+  SLEEP
+  ACTIVE
+  ERROR
+  OFF
+  INACTIVE
+}
+
+enum DeviceType {
+  DOOR
+  VISITOR_PANEL
+}
+
+enum SiteStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+}
+
+enum AccessKeyStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum AccessKeyType {
+  TAG
+  CARD
+}
+
+enum DiagnosticsStatus {
+  CREATED
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum AccessGroupStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PermissionType {
+  ACCESS
+  USER
+  SITE
+  EVENT
+  DEVICE
+  DEVICE_EVENT
+  ACCESS_KEY
+  ACCESS_GROUP
+  CALL
+  ADMIN_AND_ROLE
+}
+
+enum AccessExceptionStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+}
+
+enum LockStatus {
+  OPEN
+  CLOSE
+}
+
+enum ScreenSize {
+  INCH_10
+  INCH_13
+}
+
+enum Day {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}

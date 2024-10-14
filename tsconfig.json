@@ -1,0 +1,95 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "strict": true,
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "es2017",
+    "sourceMap": true,
+    "moduleResolution": "node",
+    "outDir": "dist",
+    "baseUrl": "./",
+    "paths": {
+      "@src/*": [
+        "src/*"
+      ],
+      "@common/*": [
+        "src/common/*"
+      ],
+      "@generics/*": [
+        "src/generics/*"
+      ],
+      "@~prisma/*": [
+        "src/prisma/*"
+      ],
+      "@auth/*": [
+        "src/auth/*"
+      ],
+      "@users/*": [
+        "src/users/*"
+      ],
+      "@roles/*": [
+        "src/roles/*"
+      ],
+      "@permissions/*": [
+        "src/permissions/*"
+      ],
+      "@configurations/*": [
+        "src/configurations/*"
+      ],
+      "@version/*": [
+        "src/version/*"
+      ],
+      "@mqtt/*": [
+        "src/mqtt/*"
+      ],
+      "@devices/*": [
+        "src/devices/*"
+      ],
+      "@sites/*": [
+        "src/sites/*"
+      ],
+      "@twilio/*": [
+        "src/twilio/*"
+      ],
+      "@mocks": [
+        "src/mocks"
+      ],
+      "@~google-cloud/*": [
+        "src/google-cloud/*"
+      ],
+      "@access-control/*": [
+        "src/access-control/*"
+      ],
+      "@access-key-provider/*": [
+        "src/access-key-provider/*"
+      ],
+      "@access-times/*": [
+        "src/access-times/*"
+      ],
+      "@access-groups/*": [
+        "src/access-groups/*"
+      ],
+      "@access-key/*": [
+        "src/access-key/*"
+      ],
+    },
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": false
+  },
+  "include": [
+    "."
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}
